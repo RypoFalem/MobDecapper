@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Monster;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
@@ -21,7 +22,6 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 	int localCap = 50;
 	int localRange = 128;
 	HashMap<Chunk, ChunkInfo> chunkMobs;
-	//EnumMap<EntityType,>
 	int counter = 0; //one second counter
 
 
@@ -57,7 +57,7 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 		return false;
 	}
 
-	@EventHandler
+	@EventHandler (priority = EventPriority.LOW, ignoreCancelled = true)
 	public void onMobSpawn(CreatureSpawnEvent event){
 		if(event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
 		if(!isHostile(event.getEntity())) return;
@@ -70,7 +70,7 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 		}
 	}
 
-	@EventHandler
+	@EventHandler (priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onChunkUnload(ChunkUnloadEvent event){
 		chunkMobs.remove(event.getChunk());
 	}
