@@ -1,0 +1,5 @@
+#The max number of mobs that can be found in localRange
+localCap: 50
+
+#The length of a square centered on a mob that defines the range in which mobs will be counted
+localRange: 128

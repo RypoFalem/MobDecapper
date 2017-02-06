@@ -1,0 +1,14 @@
+name: MobDecapper
+version: 1.0
+description: Allows more mobs to spawn
+main: io.github.rypofalem.mobdecapper.MobDecapperPlugin
+
+commands:
+  mobdecapper:
+    description: realod the mobdecapper config
+    usage: /<command> reload - reload the mobdecapper config
+    permission: decap.admin
+permissions:
+  decap.admin:
+    description: Can reload mobdecapper config
+    default: OP
