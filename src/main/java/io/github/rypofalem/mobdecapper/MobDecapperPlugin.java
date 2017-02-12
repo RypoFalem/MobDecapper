@@ -3,6 +3,7 @@ package io.github.rypofalem.mobdecapper;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -17,23 +18,21 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Collection;
 import java.util.HashMap;
 
+import lombok.EqualsAndHashCode;
+
 public class MobDecapperPlugin extends JavaPlugin implements Listener {
 
 	int localCap = 50;
 	int localRange = 128;
-	HashMap<Chunk, ChunkInfo> chunkMobs;
+	HashMap<ChunkID, ChunkInfo> chunkMobs;
 	int counter = 0; //one second counter
 
 
 	@Override
 	public void onEnable() {
 		Bukkit.getPluginManager().registerEvents(this, this);
-		chunkMobs = new HashMap<Chunk, ChunkInfo>();
-		Bukkit.getScheduler().runTaskTimer(this, new Runnable() {
-			public void run() {
-				counter++;
-			}
-		}, 1, 20);
+		chunkMobs = new HashMap<>();
+		Bukkit.getScheduler().runTaskTimer(this, () -> counter++, 1, 20);
 		saveDefaultConfig();
 		loadConfig();
 	}
@@ -62,17 +61,18 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 		if(event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
 		if(!isHostile(event.getEntity())) return;
 		Chunk chunk = event.getLocation().getChunk();
-		if(!chunkMobs.containsKey(chunk)){
-			chunkMobs.put(chunk, new ChunkInfo(event.getLocation()));
+		ChunkID id = new ChunkID(chunk);
+		if(!chunkMobs.containsKey(id)){
+			chunkMobs.put(id, new ChunkInfo(event.getLocation()));
 		}
-		if(chunkMobs.get(chunk).isTooManyMobs()){
+		if(chunkMobs.get(id).isTooManyMobs()){
 			event.setCancelled(true);
 		}
 	}
 
 	@EventHandler (priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onChunkUnload(ChunkUnloadEvent event){
-		chunkMobs.remove(event.getChunk());
+		chunkMobs.remove(new ChunkID(event.getChunk()));
 	}
 
 	//100% OC plz don't steal
@@ -100,11 +100,11 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 			case STRAY:
 			case HUSK:
 			case ZOMBIE_VILLAGER:
-				return true;
-			case VEX: //don't prevent these mobs from spawning
+			case VEX:
 			case EVOKER:
 			case SHULKER:
-				return false;
+			case VINDICATOR:
+				return true;
 			default:
 				return entity instanceof Monster;
 		}
@@ -114,6 +114,7 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 		boolean tooManyMobs;
 		int nextCheck;
 		Location location; //a location within the chunk
+		final int cooldown = 10; //seconds
 
 		ChunkInfo(Location location){
 			this.location = location.getChunk().getBlock(7,0,7).getLocation();
@@ -134,13 +135,32 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 				if(entity.isValid() && isHostile(entity)){
 					if(++localMobs >= localCap){
 						tooManyMobs = true;
-						nextCheck = counter + 5;
+						nextCheck = counter + cooldown;
 						return true;
 					}
 				}
 			}
-			nextCheck = counter + 5;
+			nextCheck = counter + cooldown;
 			return false;
+		}
+	}
+
+	@EqualsAndHashCode
+	public class ChunkID{
+		World world;
+		int x;
+		int z;
+
+		ChunkID(Chunk chunk){
+			world = chunk.getWorld();
+			x = chunk.getX();
+			z = chunk.getZ();
+		}
+
+		ChunkID(Location location){
+			world = location.getWorld();
+			x = location.getChunk().getX();
+			z = location.getChunk().getZ();
 		}
 	}
 }
