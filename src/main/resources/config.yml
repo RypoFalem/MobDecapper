@@ -2,4 +2,4 @@
 localCap: 50
 
 #The length of a square centered on a mob that defines the range in which mobs will be counted
-localRange: 128
+localRange: 256

@@ -6,7 +6,9 @@ main: io.github.rypofalem.mobdecapper.MobDecapperPlugin
 commands:
   mobdecapper:
     description: realod the mobdecapper config
-    usage: /<command> reload - reload the mobdecapper config
+    usage: "/<command> reload - reload the mobdecapper config\n
+/<command> chunks - see the local cap for every tracked chunk\n
+/<command> players - see the number of mobs near every player"
     permission: decap.admin
 permissions:
   decap.admin:
