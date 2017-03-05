@@ -12,6 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -165,6 +166,11 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 	@EventHandler (priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onChunkUnload(ChunkUnloadEvent event){
 		chunkMobs.remove(new ChunkID(event.getChunk()));
+	}
+
+	@EventHandler (priority = EventPriority.MONITOR, ignoreCancelled = true)
+	public void onPlayerLeave(PlayerQuitEvent event){
+		playerListeners.remove(event);
 	}
 
 	//100% OC plz don't steal
