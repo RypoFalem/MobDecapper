@@ -1,10 +1,7 @@
 package io.github.rypofalem.mobdecapper;
 
 import lombok.AllArgsConstructor;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -28,7 +25,7 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 	int localRange = 256;
 	HashMap<ChunkID, ChunkInfo> chunkMobs;
 	int counterSeconds = 0; //one second counterSeconds
-	HashSet<Player> playerListeners;
+	HashSet<Player> playerListeners; //players listening to debug info
 
 
 	@Override
@@ -154,9 +151,12 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 		for(Player listener : playerListeners){
 			if(Math.abs(event.getLocation().distanceSquared(listener.getLocation())) <= 128 * 128){
 				Location loc = event.getEntity().getLocation();
-				String state = event.isCancelled() ? "Cancelled" : "Success";
-				String message = String.format("%s: %s @ %d, %d", state, event.getEntity().getType().toString(),
-						loc.getBlockX(), loc.getBlockZ());
+				String state = String.format("%s%s%s",
+						ChatColor.BOLD.toString(),
+						event.isCancelled() ? ChatColor.RED.toString() + "✗" : ChatColor.GREEN.toString() + "✓",
+						ChatColor.RESET.toString());
+				String message = String.format("%s %s @ %d, %d, %d", state, event.getEntity().getType().toString(),
+						loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
 				listener.sendMessage(message);
 			}
 		}
