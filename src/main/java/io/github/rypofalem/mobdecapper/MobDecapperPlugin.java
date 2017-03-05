@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -27,12 +28,14 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 	int localRange = 256;
 	HashMap<ChunkID, ChunkInfo> chunkMobs;
 	int counterSeconds = 0; //one second counterSeconds
+	HashSet<Player> playerListeners;
 
 
 	@Override
 	public void onEnable() {
 		Bukkit.getPluginManager().registerEvents(this, this);
 		chunkMobs = new HashMap<>();
+		playerListeners = new HashSet<>();
 		Bukkit.getScheduler().runTaskTimer(this, () -> counterSeconds++, 1, 20);
 		saveDefaultConfig();
 		loadConfig();
@@ -78,12 +81,13 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 					return other.count - count;
 				}
 			}
-			Map<String, TreeSet<LocationCount>> worlds = new HashMap<>();
+			Map<String, ArrayList<LocationCount>> worlds = new HashMap<>();
 			for(ChunkInfo chunk : chunkMobs.values()){
 				Location location = chunk.location;
 				String world = location.getWorld().getName();
+				sender.sendMessage(location.toVector().toBlockVector().toString());
 				if(!worlds.containsKey(world)){
-					worlds.put(world, new TreeSet<>());
+					worlds.put(world, new ArrayList<>());
 				}
 				int count = 0;
 				for(Entity mob : location.getWorld().getNearbyEntities(location, localRange, 256, localRange)){
@@ -93,18 +97,47 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 			}
 			String output = "";
 			for(String world : worlds.keySet()){
+				worlds.get(world).sort(LocationCount::compareTo);
 				output += "\n"+ world + ":\n";
 				for(LocationCount chunk : worlds.get(world)){
-					output += String.format("    %d, %d : %d\n", chunk.location.getBlockX(), chunk.location.getBlockZ(), chunk.count);
+					output += String.format("    %d, %d : %d\n",
+							chunk.location.getBlockX(), chunk.location.getBlockZ(), chunk.count);
 				}
 			}
 			sender.sendMessage(output);
+			return true;
+		} else if(args[0].equalsIgnoreCase("listen")){
+			if(sender instanceof Player){
+				if(playerListeners.contains(sender)){
+					playerListeners.remove(sender);
+					sender.sendMessage("No longer listening to spawn events");
+				} else {
+					playerListeners.add((Player)sender);
+					sender.sendMessage("Now listening to spawn events");
+				}
+				return true;
+			}
+		} else if(args[0].equalsIgnoreCase("listtypes")){
+			String message = "\n";
+			for(World world : Bukkit.getWorlds()){
+				HashMap<EntityType, Integer> typeCount = new HashMap<>();
+				for(Entity entity : world.getEntities()){
+					EntityType type = entity.getType();
+					if(!typeCount.containsKey(type)) typeCount.put(type, 0);
+					typeCount.put(type, typeCount.get(type) + 1);
+				}
+				message += world.getName() + ":\n";
+				for(EntityType type : typeCount.keySet()){
+					message += " " + type.toString() + ": " + typeCount.get(type).toString() + "\n";
+				}
+			}
+			sender.sendMessage(message);
 			return true;
 		}
 		return false;
 	}
 
-	@EventHandler (priority = EventPriority.LOW, ignoreCancelled = true)
+	@EventHandler (priority = EventPriority.HIGH, ignoreCancelled = true)
 	public void onMobSpawn(CreatureSpawnEvent event){
 		if(event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
 		if(!isHostile(event.getEntity())){
@@ -118,6 +151,15 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 		if(chunkMobs.get(id).isTooManyMobs()){
 			event.setCancelled(true);
 		}
+		for(Player listener : playerListeners){
+			if(Math.abs(event.getLocation().distanceSquared(listener.getLocation())) <= 128 * 128){
+				Location loc = event.getEntity().getLocation();
+				String state = event.isCancelled() ? "Cancelled" : "Success";
+				String message = String.format("%s: %s @ %d, %d", state, event.getEntity().getType().toString(),
+						loc.getBlockX(), loc.getBlockZ());
+				listener.sendMessage(message);
+			}
+		}
 	}
 
 	@EventHandler (priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -127,7 +169,7 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 
 	//100% OC plz don't steal
 	public static boolean isHostile(Entity entity) {
-		//if(!entity.isValid()) return false;
+		//if(!entity.isValid()) return false; checks can happen before the entity spawns so check validity elsewhere
 		switch (entity.getType()) {
 			case CREEPER:
 			case SKELETON:
@@ -173,15 +215,12 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 			nextCheck = counterSeconds + cooldown;
 		}
 
-		ChunkInfo(Chunk chunk){
-			this(chunk.getBlock(7,0,7).getLocation());
-		}
-
 		public boolean isTooManyMobs(){
 			if(counterSeconds <= nextCheck){
 				return tooManyMobs;
 			}
-			Collection<Entity> entityList = location.getWorld().getNearbyEntities(location, localRange, 256, localRange);
+			Collection<Entity> entityList = location.getWorld()
+					.getNearbyEntities(location, localRange, 256, localRange);
 			if(entityList.size() < localCap){
 				return tooManyMobs = false;
 			}
@@ -208,12 +247,6 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 			world = chunk.getWorld();
 			x = chunk.getX();
 			z = chunk.getZ();
-		}
-
-		ChunkID(Location location){
-			world = location.getWorld();
-			x = location.getChunk().getX();
-			z = location.getChunk().getZ();
 		}
 	}
 }

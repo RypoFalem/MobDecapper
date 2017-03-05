@@ -8,7 +8,9 @@ commands:
     description: realod the mobdecapper config
     usage: "/<command> reload - reload the mobdecapper config\n
 /<command> chunks - see the local cap for every tracked chunk\n
-/<command> players - see the number of mobs near every player"
+/<command> players - see the number of mobs near every player\n
+/<command> listtypes - list the number of all entity types in the world\n
+/<command> listen - listen to nearby mob spawn events and see results"
     permission: decap.admin
 permissions:
   decap.admin:
