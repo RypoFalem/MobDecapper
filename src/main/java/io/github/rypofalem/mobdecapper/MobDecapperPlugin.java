@@ -99,7 +99,7 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 				output += "\n"+ world + ":\n";
 				for(LocationCount chunk : worlds.get(world)){
 					output += String.format("    %d, %d : %d\n",
-							chunk.location.getBlockX(), chunk.location.getBlockZ(), chunk.count);
+											chunk.location.getBlockX(), chunk.location.getBlockZ(), chunk.count);
 				}
 			}
 			sender.sendMessage(output);
@@ -135,6 +135,11 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 		return false;
 	}
 
+	static final boolean dist(Location a, Location b) {
+		if (!a.getWorld().equals(b.getWorld())) return false;
+		return a.distanceSquared(b) < 128 * 128;
+	}
+
 	@EventHandler (priority = EventPriority.HIGH, ignoreCancelled = true)
 	public void onMobSpawn(CreatureSpawnEvent event){
 		if(event.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
@@ -150,14 +155,22 @@ public class MobDecapperPlugin extends JavaPlugin implements Listener {
 			event.setCancelled(true);
 		}
 		for(Player listener : playerListeners){
-			if(Math.abs(event.getLocation().distanceSquared(listener.getLocation())) <= 128 * 128){
+			if(dist(event.getLocation(), listener.getLocation())) {
 				Location loc = event.getEntity().getLocation();
 				String state = String.format("%s%s%s",
-						ChatColor.BOLD.toString(),
-						event.isCancelled() ? ChatColor.RED.toString() + "✗" : ChatColor.GREEN.toString() + "✓",
-						ChatColor.RESET.toString());
-				String message = String.format("%s %s @ %d, %d, %d", state, event.getEntity().getType().toString(),
-						loc.getBlockX(), loc.getBlockY(), loc.getBlockZ());
+											 ChatColor.BOLD.toString(),
+											 event.isCancelled() ? ChatColor.RED.toString() + "✗" : ChatColor.GREEN.toString() + "✓",
+											 ChatColor.RESET.toString());
+				Location la = listener.getLocation();
+				Location lb = event.getLocation();
+				double dx = lb.getX() - la.getX();
+				double dz = lb.getZ() - la.getZ();
+				int distance = (int)Math.sqrt(dx*dx+dz*dz);
+				String dir = "";
+				dir += dz > 0.0 ? "S" : "N";
+				dir += dx > 0.0 ? "E" : "W";
+				String message = String.format("%s %s @ %d, %d, %d (%d %s)", state, event.getEntity().getType().toString(),
+											   loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), distance, dir);
 				listener.sendMessage(message);
 			}
 		}
